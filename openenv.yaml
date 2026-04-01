@@ -1,0 +1,113 @@
+name: RuralHealthNet-v0
+version: "1.0.0"
+description: >
+  A real-world reinforcement learning environment simulating rural telemedicine
+  triage and resource allocation. An AI agent acts as a regional health coordinator,
+  assigning patients to clinics, dispatching ambulances, prescribing medicines, and
+  managing scarce resources during epidemic surges and facility failures.
+author: Amit Tipare
+license: MIT
+tags:
+  - healthcare
+  - resource-allocation
+  - triage
+  - telemedicine
+  - social-impact
+  - epidemic-response
+
+endpoints:
+  reset: "POST /reset"
+  step: "POST /step"
+  state: "GET /state/{session_id}"
+  grade: "POST /grade"
+  tasks: "GET /tasks"
+
+observation_space:
+  type: dict
+  schema: Observation
+  fields:
+    step_number:
+      type: int
+      description: Current simulation step
+    time_hours:
+      type: float
+      description: Elapsed simulation hours
+    epidemic_active:
+      type: bool
+      description: Whether an epidemic surge is currently in progress
+    patients_waiting:
+      type: array
+      items: Patient
+    clinics:
+      type: array
+      items: ClinicResources
+
+action_space:
+  type: dict
+  schema: Action
+  fields:
+    assignments:
+      type: array
+      items: PatientAssignment
+      description: >
+        List of patient-to-clinic assignments. Each includes patient_id,
+        clinic_id, transport (ambulance/telemedicine/self_transport/defer),
+        medicine (antibiotics/painkillers/cardiac/antidiabetic/none), priority 1-5.
+
+reward:
+  per_step: true
+  components:
+    treat_critical: +1.00
+    treat_moderate: +0.45
+    treat_mild: +0.20
+    timely_bonus: +0.05
+    ambulance_critical: +0.10
+    patient_deterioration: -0.30
+    patient_lost: -1.00
+    wrong_medicine: -0.15
+    overload_clinic: -0.10
+    ambulance_waste: -0.05
+
+tasks:
+  - id: easy
+    name: Single Clinic Triage
+    description: "1 clinic, ~5 patients/step, 30 steps."
+    max_steps: 30
+    num_clinics: 1
+    pass_threshold: 0.50
+    grader: grade_easy
+
+  - id: medium
+    name: Multi-Clinic Resource Management
+    description: "3 clinics with unequal resources, ~10 patients/step, 60 steps."
+    max_steps: 60
+    num_clinics: 3
+    pass_threshold: 0.55
+    grader: grade_medium
+
+  - id: hard
+    name: Epidemic Surge Response
+    description: "5 clinics, epidemic at step 40, clinic offline at step 55, 100 steps."
+    max_steps: 100
+    num_clinics: 5
+    pass_threshold: 0.60
+    grader: grade_hard
+
+baseline_scores:
+  seed: 42
+  agent: HeuristicAgent
+  results:
+    - task: easy
+      score: 0.1056
+      treatment_rate: 0.29
+    - task: medium
+      score: 0.2628
+      treatment_rate: 0.344
+    - task: hard
+      score: 0.0971
+      treatment_rate: 0.344
+
+metadata:
+  real_world_domain: Rural Healthcare
+  github: "https://github.com/amittipare585858/rural-health-net"
+  huggingface_space: "https://huggingface.co/spaces/amittipare585858/rural-health-net"
